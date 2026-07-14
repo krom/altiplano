@@ -14,7 +14,8 @@ Projects:
 - `list_project_users` (project_id) — users with access to a project, including their permission level (0 read, 1 write, 2 admin)
 
 Tasks:
-- `list_tasks` (project_id, filter, sort_by, page, per_page)
+- `list_tasks` (project_id, filter, sort_by, page, per_page) — see filter syntax below
+- `search_tasks` (filter?, s?, sort_by?, page, per_page) — same filter syntax as `list_tasks`, but across all projects; `s` is free-text search
 - `get_task` (task_id)
 - `create_task` (project_id, title, description?, priority?, due_date?, start_date?, end_date?, percent_done?, is_favorite?, repeat_after?, repeat_mode?)
 - `update_task` (task_id, title?, description?, done?, priority?, start_date?, end_date?, percent_done?, is_favorite?, repeat_after?, repeat_mode?)
@@ -90,6 +91,15 @@ uv run altiplano                        # dev, from this directory
 uvx --from /your/local/path altiplano   # local path
 uvx altiplano                           # from PyPI
 ```
+
+## Filter syntax (`list_tasks` / `search_tasks`)
+
+- Fields: `done`, `priority`, `percent_done`, `due_date`, `start_date`, `end_date`, `created`, `updated`, `assignees`, `labels`, `reminders`, `title`, `description`.
+- Operators: `=`, `!=`, `>`, `>=`, `<`, `<=`, `in`, `like`, combined with `&&` / `||` and parentheses, e.g. `(priority >= 3 || done = true) && due_date < now+7d`.
+- `like` does substring matching on text fields, e.g. `title like "report"`.
+- `in` takes a comma-separated list of IDs (labels/assignees), not names, e.g. `labels in 3,5` — look up IDs first with `list_labels` / `search_users`.
+- Dates accept ISO 8601 or Vikunja's relative date math: `now`, `now+7d`, `now-1h`, `now/d` (start of day), `now/w` (start of week).
+- `sort_by` is a field name, optionally prefixed with `-` for descending, e.g. `-priority`.
 
 ## Notes
 

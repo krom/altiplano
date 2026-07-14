@@ -74,6 +74,20 @@ def _task_summary(t: dict) -> dict:
     }
 
 
+async def _patch_task(task_id: int, changes: dict[str, Any]) -> dict:
+    """Apply `changes` to a task, preserving every other field.
+
+    Vikunja's `POST /tasks/{id}` replaces the whole task rather than merging,
+    so sending only the changed keys silently resets every field omitted from
+    the payload (e.g. priority drops to 0 if you only pass `description`).
+    Fetching the current task first and posting it back with `changes`
+    applied avoids that.
+    """
+    task = await _request("GET", f"/tasks/{task_id}")
+    task.update(changes)
+    return await _request("POST", f"/tasks/{task_id}", json=task)
+
+
 async def _kanban_view(project_id: int) -> dict:
     """Resolve the project's kanban view. Raises if the project has none."""
     views = await _request("GET", f"/projects/{project_id}/views")
@@ -145,9 +159,22 @@ async def list_tasks(
 ) -> list[dict]:
     """List tasks in a project.
 
-    `filter` and `sort_by` are passed to Vikunja and applied server-side, e.g.
-    filter="done = false && priority >= 4", sort_by="priority". Vikunja filters
-    then paginates, so results are complete regardless of page size.
+    `filter` and `sort_by` are passed to Vikunja and applied server-side.
+    Vikunja filters then paginates, so results are complete regardless of
+    page size. To search across every project instead of one, use `search_tasks`.
+
+    Filter syntax:
+    - Fields: done, priority, percent_done, due_date, start_date, end_date,
+      created, updated, assignees, labels, reminders, title, description.
+    - Operators: =, !=, >, >=, <, <=, in, like, combined with && (and) / || (or)
+      and parentheses, e.g. "(priority >= 3 || done = true) && due_date < now+7d".
+    - `like` does substring matching on text fields, e.g. title like "report".
+    - `in` takes a comma-separated list, e.g. "labels in 3,5" (label/assignee IDs,
+      not names — look them up with `list_labels`/`search_users` first).
+    - Dates accept ISO 8601 or Vikunja's relative date math: now, now+7d, now-1h,
+      now/d (start of day), now/w (start of week), etc.
+    - `sort_by` takes a field name, e.g. "priority" or "due_date"; prefix with
+      "-" for descending, e.g. "-priority".
     """
     params: dict[str, Any] = {"page": page, "per_page": per_page}
     if filter:
@@ -155,6 +182,33 @@ async def list_tasks(
     if sort_by:
         params["sort_by"] = sort_by
     data = await _request("GET", f"/projects/{project_id}/tasks", params=params)
+    return [_task_summary(t) for t in (data or [])]
+
+
+@mcp.tool()
+async def search_tasks(
+    filter: str | None = None,
+    s: str | None = None,
+    sort_by: str | None = None,
+    page: int = 1,
+    per_page: int = 50,
+) -> list[dict]:
+    """Search or filter tasks across ALL projects (not just one).
+
+    `s` is a free-text search over the task title/description. `filter` and
+    `sort_by` use the same syntax as `list_tasks` (see its docstring for the
+    full field/operator reference), applied server-side across every project
+    the caller can see. Use `list_tasks` instead when you already know the
+    project and just want to list or filter within it.
+    """
+    params: dict[str, Any] = {"page": page, "per_page": per_page}
+    if filter:
+        params["filter"] = filter
+    if s:
+        params["s"] = s
+    if sort_by:
+        params["sort_by"] = sort_by
+    data = await _request("GET", "/tasks", params=params)
     return [_task_summary(t) for t in (data or [])]
 
 
@@ -256,7 +310,7 @@ async def update_task(
         payload["repeat_mode"] = repeat_mode
     if not payload:
         raise ValueError("No fields to update")
-    return await _request("POST", f"/tasks/{task_id}", json=payload)
+    return await _patch_task(task_id, payload)
 
 
 @mcp.tool()
@@ -267,14 +321,13 @@ async def move_task(task_id: int, project_id: int) -> dict:
     `bucket_id` on a project change); use `move_task_to_bucket` afterward if
     placement on the new project's board matters.
     """
-    return await _request("POST", f"/tasks/{task_id}", json={"project_id": project_id})
+    return await _patch_task(task_id, {"project_id": project_id})
 
 
 @mcp.tool()
 async def set_reminders(task_id: int, reminders: list[str]) -> dict:
     """Replace a task's reminders with the given ISO 8601 datetimes. Empty list clears them."""
-    payload = {"reminders": [{"reminder": r} for r in reminders]}
-    return await _request("POST", f"/tasks/{task_id}", json=payload)
+    return await _patch_task(task_id, {"reminders": [{"reminder": r} for r in reminders]})
 
 
 @mcp.tool()
