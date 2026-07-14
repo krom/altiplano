@@ -11,6 +11,7 @@ Filtering and sorting are passed straight to the Vikunja API (server-side), so t
 Projects:
 - `list_projects` (includes `parent_project_id`, shows sub-project nesting)
 - `create_project` (title, parent_project_id?, description?) — pass `parent_project_id` for a sub-project
+- `list_project_users` (project_id) — users with access to a project, including their permission level (0 read, 1 write, 2 admin)
 
 Tasks:
 - `list_tasks` (project_id, filter, sort_by, page, per_page)
@@ -19,6 +20,9 @@ Tasks:
 - `update_task` (task_id, title?, description?, done?, priority?, start_date?, end_date?, percent_done?, is_favorite?, repeat_after?, repeat_mode?)
 - `move_task` (task_id, project_id) — moves a task to a different project; its kanban bucket resets in the target project
 - `set_reminders` (task_id, reminders) — replaces the task's reminders with the given ISO 8601 datetimes; empty list clears
+- `bulk_update_tasks` (task_ids, done?, priority?) — applies `done`/`priority` to multiple tasks in one call
+- `list_attachments` (task_id) — a task's file attachments (id, file_name, size, created)
+- `duplicate_task` (task_id, project_id?) — duplicates a task, defaulting to its current project; the copy is linked back via a `copiedfrom` relation
 
 Kanban:
 - `list_buckets` (project_id) — lists the columns of a project's kanban view, flagging the default and done buckets
@@ -33,6 +37,7 @@ Relations:
 
 Labels:
 - `list_labels`
+- `create_label` (title, hex_color?)
 - `add_label` (task_id, label_id)
 - `remove_label` (task_id, label_id)
 

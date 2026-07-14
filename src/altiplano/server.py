@@ -115,6 +115,24 @@ async def create_project(
     return await _request("PUT", "/projects", json=payload)
 
 
+@mcp.tool()
+async def list_project_users(project_id: int) -> list[dict]:
+    """List the users who have access to a project, with their permission level.
+
+    `permission` is Vikunja's numeric right level: 0 read, 1 write, 2 admin.
+    """
+    data = await _request("GET", f"/projects/{project_id}/users")
+    return [
+        {
+            "id": u.get("id"),
+            "username": u.get("username"),
+            "name": u.get("name"),
+            "permission": u.get("permission"),
+        }
+        for u in (data or [])
+    ]
+
+
 # --- tasks ------------------------------------------------------------------
 ##
 @mcp.tool()
@@ -259,6 +277,57 @@ async def set_reminders(task_id: int, reminders: list[str]) -> dict:
     return await _request("POST", f"/tasks/{task_id}", json=payload)
 
 
+@mcp.tool()
+async def bulk_update_tasks(task_ids: list[int], done: bool | None = None, priority: int | None = None) -> dict:
+    """Update `done` and/or `priority` across multiple tasks in a single call.
+
+    Only the fields you pass are changed; at least one of `done`/`priority` is required.
+    """
+    fields: list[str] = []
+    values: dict[str, Any] = {}
+    if done is not None:
+        fields.append("done")
+        values["done"] = done
+    if priority is not None:
+        fields.append("priority")
+        values["priority"] = priority
+    if not fields:
+        raise ValueError("No fields to update")
+    return await _request(
+        "POST", "/tasks/bulk", json={"task_ids": task_ids, "fields": fields, "values": values}
+    )
+
+
+@mcp.tool()
+async def list_attachments(task_id: int) -> list[dict]:
+    """List a task's file attachments."""
+    data = await _request("GET", f"/tasks/{task_id}/attachments")
+    return [
+        {
+            "id": a.get("id"),
+            "file_name": (a.get("file") or {}).get("name"),
+            "size": (a.get("file") or {}).get("size"),
+            "created": a.get("created"),
+        }
+        for a in (data or [])
+    ]
+
+
+@mcp.tool()
+async def duplicate_task(task_id: int, project_id: int | None = None) -> dict:
+    """Duplicate a task, returning the new task's full detail.
+
+    If `project_id` is omitted, the copy is created in the task's current
+    project. The copy is linked back to the source via an auto-created
+    `copiedfrom`/`copiedto` relation, visible through `list_relations`.
+    """
+    if project_id is None:
+        task = await _request("GET", f"/tasks/{task_id}")
+        project_id = task["project_id"]
+    data = await _request("PUT", f"/tasks/{task_id}/duplicate", json={"project_id": project_id})
+    return data["duplicated_task"]
+
+
 # --- kanban -------------------------------------------------------------
 ##
 @mcp.tool()
@@ -372,6 +441,15 @@ async def list_labels() -> list[dict]:
     """List all labels."""
     data = await _request("GET", "/labels")
     return [{"id": x["id"], "title": x["title"]} for x in (data or [])]
+
+
+@mcp.tool()
+async def create_label(title: str, hex_color: str | None = None) -> dict:
+    """Create a new label. To attach an existing label to a task, use `add_label`."""
+    payload: dict[str, Any] = {"title": title}
+    if hex_color is not None:
+        payload["hex_color"] = hex_color
+    return await _request("PUT", "/labels", json=payload)
 
 
 @mcp.tool()
