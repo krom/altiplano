@@ -316,6 +316,44 @@ async def move_task_to_bucket(project_id: int, task_id: int, bucket_id: int) -> 
     )
 
 
+# --- relations ---------------------------------------------------------
+##
+@mcp.tool()
+async def list_relations(task_id: int) -> dict:
+    """List a task's relations to other tasks, grouped by relation kind.
+
+    Relation kinds are paired: adding one side (e.g. `blocking`) on a task
+    automatically creates the inverse (`blocked`) on the other task. Possible
+    kinds: subtask, parenttask, related, duplicateof, duplicates, blocking,
+    blocked, precedes, follows, copiedfrom, copiedto.
+    """
+    task = await _request("GET", f"/tasks/{task_id}")
+    related = task.get("related_tasks") or {}
+    return {kind: [_task_summary(t) for t in tasks] for kind, tasks in related.items()}
+
+
+@mcp.tool()
+async def add_relation(task_id: int, other_task_id: int, relation_kind: str) -> dict:
+    """Create a relation from `task_id` to `other_task_id`.
+
+    `relation_kind` is one of: subtask, parenttask, related, duplicateof,
+    duplicates, blocking, blocked, precedes, follows, copiedfrom, copiedto.
+    Kinds are paired — e.g. adding `blocking` here also makes `task_id` show
+    up under `blocked` on `other_task_id`, so there's no need to add both sides.
+    """
+    payload = {"relation_kind": relation_kind, "other_task_id": other_task_id}
+    return await _request("PUT", f"/tasks/{task_id}/relations", json=payload)
+
+
+@mcp.tool()
+async def remove_relation(task_id: int, other_task_id: int, relation_kind: str) -> dict:
+    """Remove a relation from `task_id` to `other_task_id` of the given `relation_kind`.
+
+    This also removes the paired inverse relation on `other_task_id`.
+    """
+    return await _request("DELETE", f"/tasks/{task_id}/relations/{relation_kind}/{other_task_id}")
+
+
 # --- labels -----------------------------------------------------------------
 ##
 @mcp.tool()

@@ -25,6 +25,11 @@ Kanban:
 - `get_task_bucket` (task_id) — the bucket a task currently sits in
 - `move_task_to_bucket` (project_id, task_id, bucket_id) — moves a task into a bucket; moving into the done bucket sets `done=true`, moving out clears it
 
+Relations:
+- `list_relations` (task_id) — a task's relations to other tasks, grouped by relation kind
+- `add_relation` (task_id, other_task_id, relation_kind) — kinds: subtask, parenttask, related, duplicateof, duplicates, blocking, blocked, precedes, follows, copiedfrom, copiedto (paired — adding one side creates the inverse automatically)
+- `remove_relation` (task_id, other_task_id, relation_kind)
+
 Labels:
 - `list_labels`
 - `add_label` (task_id, label_id)
