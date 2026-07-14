@@ -17,6 +17,7 @@ Tasks:
 - `get_task` (task_id)
 - `create_task` (project_id, title, description?, priority?, due_date?, start_date?, end_date?, percent_done?, is_favorite?, repeat_after?, repeat_mode?)
 - `update_task` (task_id, title?, description?, done?, priority?, start_date?, end_date?, percent_done?, is_favorite?, repeat_after?, repeat_mode?)
+- `move_task` (task_id, project_id) — moves a task to a different project; its kanban bucket resets in the target project
 - `set_reminders` (task_id, reminders) — replaces the task's reminders with the given ISO 8601 datetimes; empty list clears
 
 Kanban:

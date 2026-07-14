@@ -242,6 +242,17 @@ async def update_task(
 
 
 @mcp.tool()
+async def move_task(task_id: int, project_id: int) -> dict:
+    """Move a task to a different project by changing its `project_id`.
+
+    The task's kanban bucket resets in the target project (Vikunja clears
+    `bucket_id` on a project change); use `move_task_to_bucket` afterward if
+    placement on the new project's board matters.
+    """
+    return await _request("POST", f"/tasks/{task_id}", json={"project_id": project_id})
+
+
+@mcp.tool()
 async def set_reminders(task_id: int, reminders: list[str]) -> dict:
     """Replace a task's reminders with the given ISO 8601 datetimes. Empty list clears them."""
     payload = {"reminders": [{"reminder": r} for r in reminders]}
