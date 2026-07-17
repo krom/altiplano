@@ -25,7 +25,8 @@ Tasks:
 - `list_attachments` (task_id) — a task's file attachments (id, file_name, size, created)
 - `duplicate_task` (task_id, project_id?) — duplicates a task, defaulting to its current project; the copy is linked back via a `copiedfrom` relation
 - `list_reactions` (task_id) — a task's emoji reactions, grouped by emoji with who reacted
-- `add_reaction` (task_id, value) — add an emoji reaction; idempotent if repeated. Vikunja has no endpoint to remove a reaction, so there is no `remove_reaction`
+- `add_reaction` (task_id, value) — add an emoji reaction; idempotent if repeated
+- `remove_reaction` (task_id, value) — remove your own reaction from a task
 
 Kanban:
 - `list_buckets` (project_id) — lists the columns of a project's kanban view, flagging the default and done buckets
@@ -45,8 +46,11 @@ Labels:
 - `remove_label` (task_id, label_id)
 
 Comments:
-- `list_comments` (task_id)
+- `list_comments` (task_id) — includes each comment's emoji reactions inline, so `list_comment_reactions` is rarely needed after this
 - `add_comment` (task_id, comment)
+- `list_comment_reactions` (comment_id) — a comment's emoji reactions, grouped by emoji with who reacted
+- `add_comment_reaction` (comment_id, value) — add an emoji reaction; idempotent if repeated
+- `remove_comment_reaction` (comment_id, value) — remove your own reaction from a comment
 
 Assignees:
 - `search_users` (query) — find a `user_id` to assign

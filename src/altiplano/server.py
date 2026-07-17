@@ -399,12 +399,14 @@ async def list_reactions(task_id: int) -> list[dict]:
 
 @mcp.tool()
 async def add_reaction(task_id: int, value: str) -> dict:
-    """Add an emoji reaction to a task, e.g. value="👍". Idempotent if repeated.
-
-    Vikunja has no endpoint to remove a task reaction, so there is no
-    corresponding remove tool — an added reaction cannot be undone via the API.
-    """
+    """Add an emoji reaction to a task, e.g. value="👍". Idempotent if repeated."""
     return await _request("PUT", f"/tasks/{task_id}/reactions", json={"value": value})
+
+
+@mcp.tool()
+async def remove_reaction(task_id: int, value: str) -> dict:
+    """Remove your own emoji reaction, e.g. value="👍", from a task."""
+    return await _request("POST", f"/tasks/{task_id}/reactions/delete", json={"value": value})
 
 
 # --- kanban -------------------------------------------------------------
@@ -547,10 +549,29 @@ async def remove_label(task_id: int, label_id: int) -> dict:
 ##
 @mcp.tool()
 async def list_comments(task_id: int) -> list[dict]:
-    """List comments on a task."""
+    """List comments on a task, including each comment's emoji reactions.
+
+    Reactions are returned inline (grouped by emoji value with who reacted)
+    since Vikunja's comment-list endpoint already embeds them — no need to
+    call `list_comment_reactions` separately after this.
+    """
     data = await _request("GET", f"/tasks/{task_id}/comments")
     return [
-        {"id": c.get("id"), "comment": c.get("comment"), "author": (c.get("author") or {}).get("username")}
+        {
+            "id": c.get("id"),
+            "comment": c.get("comment"),
+            "author": (c.get("author") or {}).get("username"),
+            "reactions": [
+                {
+                    "value": value,
+                    "users": [
+                        {"id": u.get("id"), "username": u.get("username"), "name": u.get("name")}
+                        for u in users
+                    ],
+                }
+                for value, users in (c.get("reactions") or {}).items()
+            ],
+        }
         for c in (data or [])
     ]
 
@@ -559,6 +580,34 @@ async def list_comments(task_id: int) -> list[dict]:
 async def add_comment(task_id: int, comment: str) -> dict:
     """Add a comment to a task."""
     return await _request("PUT", f"/tasks/{task_id}/comments", json={"comment": comment})
+
+
+@mcp.tool()
+async def list_comment_reactions(comment_id: int) -> list[dict]:
+    """List a comment's emoji reactions, grouped by emoji value with who reacted."""
+    data = await _request("GET", f"/comments/{comment_id}/reactions")
+    return [
+        {
+            "value": value,
+            "users": [
+                {"id": u.get("id"), "username": u.get("username"), "name": u.get("name")}
+                for u in users
+            ],
+        }
+        for value, users in (data or {}).items()
+    ]
+
+
+@mcp.tool()
+async def add_comment_reaction(comment_id: int, value: str) -> dict:
+    """Add an emoji reaction to a comment, e.g. value="👍". Idempotent if repeated."""
+    return await _request("PUT", f"/comments/{comment_id}/reactions", json={"value": value})
+
+
+@mcp.tool()
+async def remove_comment_reaction(comment_id: int, value: str) -> dict:
+    """Remove your own emoji reaction, e.g. value="👍", from a comment."""
+    return await _request("POST", f"/comments/{comment_id}/reactions/delete", json={"value": value})
 
 
 # --- users / assignees ------------------------------------------------------
