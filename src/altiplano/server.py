@@ -381,6 +381,32 @@ async def duplicate_task(task_id: int, project_id: int | None = None) -> dict:
     return data["duplicated_task"]
 
 
+@mcp.tool()
+async def list_reactions(task_id: int) -> list[dict]:
+    """List a task's emoji reactions, grouped by emoji value with who reacted."""
+    data = await _request("GET", f"/tasks/{task_id}/reactions")
+    return [
+        {
+            "value": value,
+            "users": [
+                {"id": u.get("id"), "username": u.get("username"), "name": u.get("name")}
+                for u in users
+            ],
+        }
+        for value, users in (data or {}).items()
+    ]
+
+
+@mcp.tool()
+async def add_reaction(task_id: int, value: str) -> dict:
+    """Add an emoji reaction to a task, e.g. value="👍". Idempotent if repeated.
+
+    Vikunja has no endpoint to remove a task reaction, so there is no
+    corresponding remove tool — an added reaction cannot be undone via the API.
+    """
+    return await _request("PUT", f"/tasks/{task_id}/reactions", json={"value": value})
+
+
 # --- kanban -------------------------------------------------------------
 ##
 @mcp.tool()

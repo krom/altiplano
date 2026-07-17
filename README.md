@@ -24,6 +24,8 @@ Tasks:
 - `bulk_update_tasks` (task_ids, done?, priority?) — applies `done`/`priority` to multiple tasks in one call
 - `list_attachments` (task_id) — a task's file attachments (id, file_name, size, created)
 - `duplicate_task` (task_id, project_id?) — duplicates a task, defaulting to its current project; the copy is linked back via a `copiedfrom` relation
+- `list_reactions` (task_id) — a task's emoji reactions, grouped by emoji with who reacted
+- `add_reaction` (task_id, value) — add an emoji reaction; idempotent if repeated. Vikunja has no endpoint to remove a reaction, so there is no `remove_reaction`
 
 Kanban:
 - `list_buckets` (project_id) — lists the columns of a project's kanban view, flagging the default and done buckets
