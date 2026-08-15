@@ -2,6 +2,29 @@
 
 All notable changes to this project are documented here.
 
+## [0.6.0]
+
+### Added
+
+- `list_project_users`, to list who has access to a project and their
+  permission level.
+- `search_tasks`, to filter/search tasks across all projects instead of one.
+- `move_task`, to move a task to a different project.
+- `bulk_update_tasks`, to apply `done`/`priority` to multiple tasks in one
+  call.
+- `list_attachments`, to list a task's file attachments.
+- `duplicate_task`, to duplicate a task (linked back via a `copiedfrom`
+  relation).
+- `list_relations`, `add_relation`, `remove_relation`, to manage task
+  relations (subtask, blocking, precedes, etc).
+- `create_label`, to create a label.
+- `list_reactions`, `add_reaction`, `remove_reaction`, for emoji reactions on
+  tasks.
+- `list_comment_reactions`, `add_comment_reaction`, `remove_comment_reaction`,
+  for emoji reactions on comments; `list_comments` now includes each
+  comment's reactions inline.
+- A Dockerfile for running the server behind `mcpo`.
+
 ## [0.5.0]
 
 ### Fixed
